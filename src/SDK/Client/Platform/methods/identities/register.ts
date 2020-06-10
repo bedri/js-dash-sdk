@@ -1,4 +1,5 @@
-import { Transaction } from "@dashevo/dashcore-lib";
+// @ts-ignore
+import {Script, Transaction} from "@dashevo/wallet-lib/node_modules/@dashevo/dashcore-lib";
 // @ts-ignore
 import {utils} from "@dashevo/wallet-lib";
 
@@ -67,6 +68,12 @@ export async function register(this: Platform): Promise<any> {
     // FIXME : Seems to fail with addBurnOutput ?
     // const signedLockTransaction = account.sign(lockTransaction, signingKeys);
     const signedLockTransaction = lockTransaction.sign(signingKeys);
+
+    // This below is a fix to avoid the fact that we got transaction script from outside.
+    //@ts-ignore
+    signedLockTransaction.inputs = signedLockTransaction.inputs.map((input)=> new Transaction.Input.PublicKeyHash(input.toJSON()));
+    //@ts-ignore
+    signedLockTransaction.outputs = signedLockTransaction.outputs.map((output)=> new Transaction.Output(output.toJSON()));
 
     // @ts-ignore
     await account.broadcastTransaction(signedLockTransaction);
