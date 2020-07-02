@@ -1,29 +1,28 @@
-import { Account, Wallet } from "@dashevo/wallet-lib";
-import { DAPIClientWrapper } from "@dashevo/wallet-lib/src/transporters"
+import { Account, Wallet } from '@dashevo/wallet-lib';
+import { DAPIClientWrapper } from '@dashevo/wallet-lib/src/transporters';
 // FIXME: use dashcorelib types
-import { Platform } from './Platform';
 // @ts-ignore
-import { Network } from "@dashevo/dashcore-lib";
-import DAPIClient from "@dashevo/dapi-client";
+import { Network } from '@dashevo/dashcore-lib';
+import DAPIClient from '@dashevo/dapi-client';
+import { Platform } from './Platform';
 
 /**
  * default seed passed to SDK options
  */
 const defaultSeeds = [
-    {service: 'seed-1.evonet.networks.dash.org'},
-    {service: 'seed-2.evonet.networks.dash.org'},
-    {service: 'seed-3.evonet.networks.dash.org'},
-    {service: 'seed-4.evonet.networks.dash.org'},
-    {service: 'seed-5.evonet.networks.dash.org'},
+  { service: 'seed-1.evonet.networks.dash.org' },
+  { service: 'seed-2.evonet.networks.dash.org' },
+  { service: 'seed-3.evonet.networks.dash.org' },
+  { service: 'seed-4.evonet.networks.dash.org' },
+  { service: 'seed-5.evonet.networks.dash.org' },
 ];
-
 
 /**
  * Interface for DAPIClientSeed
  * @param {string} service - service seed, can be an IP, HTTP or DNS Seed
  */
 export interface DAPIClientSeed {
-    service: string,
+  service: string,
 }
 
 /**
@@ -36,108 +35,116 @@ export interface DAPIClientSeed {
  * @param {number} [walletAccountIndex=0] - account index number
  */
 export interface ClientOpts {
-    seeds?: DAPIClientSeed[];
-    network?: Network | string,
-    wallet?: Wallet.Options | null,
-    apps?: ClientApps,
-    walletAccountIndex?: number,
+  seeds?: DAPIClientSeed[];
+  network?: Network | string,
+  wallet?: Wallet.Options | null,
+  apps?: ClientApps,
+  walletAccountIndex?: number,
 }
 
 /**
  * Interface for ClientApps
  */
 export interface ClientApps {
-    [name: string]: {
-        contractId: string,
-        contract?: any
-    }
+  [name: string]: {
+    contractId: string,
+    contract?: any
+  }
 }
 
 /**
  * class for SDK
  */
 export class Client {
-    public network: string = 'testnet';
-    public wallet: Wallet | undefined;
-    public account: Account | undefined;
-    public platform: Platform | undefined;
-    public walletAccountIndex: number = 0;
-    private readonly dapiClientWrapper: DAPIClientWrapper;
-    private readonly apps: ClientApps;
-    private options: ClientOpts;
+  public network: string = 'testnet';
 
-    /**
+  public wallet: Wallet | undefined;
+
+  public account: Account | undefined;
+
+  public platform: Platform | undefined;
+
+  public walletAccountIndex: number = 0;
+
+  private readonly dapiClientWrapper: DAPIClientWrapper;
+
+  private readonly apps: ClientApps;
+
+  private options: ClientOpts;
+
+  /**
      * Construct some instance of SDK Client
      *
      * @param {ClientOpts} [options] - options for SDK Client
      */
-    constructor(options: ClientOpts = {}) {
-        this.options = {
-            walletAccountIndex: 0,
-            ...options
-        }
+  constructor(options: ClientOpts = {}) {
+    this.options = {
+      walletAccountIndex: 0,
+      ...options,
+    };
 
-        // @ts-ignore
-        this.walletAccountIndex = this.options.walletAccountIndex;
+    // @ts-ignore
+    this.walletAccountIndex = this.options.walletAccountIndex;
 
-        this.network = this.options.network ? this.options.network.toString() : 'testnet';
+    this.network = this.options.network ? this.options.network.toString() : 'testnet';
 
-        this.apps = Object.assign({
-            dpns: {
-                contractId: '7DVe2cDyZMf8sDjQ46XqDzbeGKncrmkD6L96QohLmLbg'
-            }
-        }, this.options.apps);
+    this.apps = {
+      dpns: {
+        contractId: '7DVe2cDyZMf8sDjQ46XqDzbeGKncrmkD6L96QohLmLbg',
+      },
+      ...this.options.apps,
+    };
 
-        this.dapiClientWrapper = new DAPIClientWrapper({
-            seeds: this.options.seeds || defaultSeeds,
-            network: this.network
-        });
+    this.dapiClientWrapper = new DAPIClientWrapper({
+      seeds: this.options.seeds || defaultSeeds,
+      network: this.network,
+    });
 
-        // We accept null as parameter for a new generated mnemonic
-        if (this.options.wallet !== undefined) {
-            this.wallet = new Wallet({
-                transporter: this.dapiClientWrapper,
-                ...this.options.wallet,
-            });
-        }
-
-        this.platform = new Platform({
-            client: this,
-            apps: this.getApps(),
-            network: this.network,
-        });
+    // We accept null as parameter for a new generated mnemonic
+    if (this.options.wallet !== undefined) {
+      this.wallet = new Wallet({
+        transporter: this.dapiClientWrapper,
+        ...this.options.wallet,
+      });
     }
 
-    /**
+    this.platform = new Platform({
+      client: this,
+      apps: this.getApps(),
+      network: this.network,
+    });
+  }
+
+  /**
      * Get Wallet account
      *
      * @param {Wallet.getAccOptions} [options]
      * @returns {Promise<Account>}
      */
-    async getWalletAccount(options: Wallet.getAccOptions = {}) : Promise<Account> {
-        if (!this.wallet) {
-            throw new Error('Wallet is not initialized, pass `wallet` option to Client');
-        }
-
-        options = {
-            index: this.walletAccountIndex,
-            ...options,
-        }
-
-        return this.wallet.getAccount(options);
+  async getWalletAccount(options: Wallet.getAccOptions = {}) : Promise<Account> {
+    if (!this.wallet) {
+      throw new Error('Wallet is not initialized, pass `wallet` option to Client');
     }
 
+    // eslint-disable-next-line no-param-reassign
+    options = {
+      index: this.walletAccountIndex,
+      ...options,
+    };
 
-    /**
+    return this.wallet.getAccount(options);
+  }
+
+  /**
      * disconnect wallet from Dapi
      */
-    async disconnect() {
-        if (this.wallet) {
-            await this.wallet.disconnect();
-        }
+  async disconnect() {
+    if (this.wallet) {
+      await this.wallet.disconnect();
     }
+  }
 
-    /**
+  /**
      * fetch some instance of DAPI client
      *
      * @remarks
@@ -145,11 +152,11 @@ export class Client {
      *
      * @returns {DAPIClient}
      */
-    getDAPIClient() : DAPIClient {
-        return this.dapiClientWrapper.client;
-    }
+  getDAPIClient() : DAPIClient {
+    return this.dapiClientWrapper.client;
+  }
 
-    /**
+  /**
      * fetch list of applications
      *
      * @remarks
@@ -157,9 +164,9 @@ export class Client {
      *
      * @returns applications list
      */
-    getApps(): ClientApps {
-        return this.apps;
-    }
+  getApps(): ClientApps {
+    return this.apps;
+  }
 }
 
 export default Client;
